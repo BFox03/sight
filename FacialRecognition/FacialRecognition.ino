@@ -52,6 +52,11 @@ const char *password = "lavender-645-286";
 void startCameraServer();
 void setupLedFlash(int pin);
 
+/* ADDED */ // Indicates SIGHT Added content
+#include "ESP_I2S.h"
+#include "FS.h"
+#include "SD.h"
+
 void setup() {
   Serial.begin(115200);
   Serial.setDebugOutput(true);
