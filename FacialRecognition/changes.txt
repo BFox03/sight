@@ -2,3 +2,5 @@ Changes from CameraWebServer (10/28)
 - Moved camera pin designation to main file (remove camera_pins.h)
 - removed readme.md
 - enabled pixel format pixformat_rgb565 from jpeg
+Added new features (1/27)
+- Added microphone recording after enrolled face is recognized, wav is saved to SD card
