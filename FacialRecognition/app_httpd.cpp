@@ -20,6 +20,10 @@
 #include "sdkconfig.h"
 #include "camera_index.h"
 
+/* ADDED */
+#include "audio_record.h"
+/* End ADDED */ 
+
 #if defined(ARDUINO_ARCH_ESP32) && defined(CONFIG_ARDUHAL_ESP_LOG)
 #include "esp32-hal-log.h"
 #endif
@@ -257,27 +261,7 @@ static int run_face_recognition(fb_data_t *fb, std::list<dl::detect::result_t> *
   face_info_t recognize = recognizer.recognize(tensor, landmarks);
   if (recognize.id >= 0) {
     rgb_printf(fb, FACE_COLOR_GREEN, "ID[%u]: %.2f", recognize.id, recognize.similarity);
-    /* ADDED */
-    // SIGHT: Where face is recognized turn on LED
-    Serial.println("ID[%u] Recognized: %.2f similarity")
-    Serial.println("Recording 2 seconds of audio")
-    wav_buffer = i2s.recordWAV(2, &wav_size);
-
-    // Create a file on the SD card
-    File file = SD.open("/ID[%u].wav", FILE_WRITE);
-    if (!file) {
-      Serial.println("Failed to open file for writing!");
-      return;
-    }
-
-    Serial.println("Writing audio data to file...");
-
-    // Write the audio data to the file
-    if (file.write(wav_buffer, wav_size) != wav_size) {
-      Serial.println("Failed to write audio data to file!");
-      return;
-    }
-    /* End ADDED */
+    record();
   } else {
     rgb_print(fb, FACE_COLOR_RED, "Intruder Alert!");
   }
@@ -1162,37 +1146,6 @@ static esp_err_t index_handler(httpd_req_t *req) {
 }
 
 void startCameraServer() {
-  /* ADDED */
-  // Create an instance of the I2SClass
-  I2SClass i2s;
-
-  // Create variables to store the audio data
-  uint8_t *wav_buffer;
-  size_t wav_size;
-  const 
-
-  Serial.println("Initializing I2S bus...");
-
-  // Set up the pins used for audio input
-  i2s.setPinsPdmRx(42, 41);
-
-  // start I2S at 16 kHz with 16-bits per sample
-  if (!i2s.begin(I2S_MODE_PDM_RX, 16000, I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO)) {
-    Serial.println("Failed to initialize I2S!");
-    while (1); // do nothing
-  }
-
-  Serial.println("I2S bus initialized.");
-  Serial.println("Initializing SD card...");
-
-  // Set up the pins used for SD card access
-  if(!SD.begin(21)){
-    Serial.println("Failed to mount SD Card!");
-    while (1) ;
-  }
-  Serial.println("SD card initialized.");
-  /* End ADDED */
-
   httpd_config_t config = HTTPD_DEFAULT_CONFIG();
   config.max_uri_handlers = 16;
 
