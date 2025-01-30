@@ -47,18 +47,17 @@
 // ===========================
 // Enter your WiFi credentials
 // ===========================
-const char *ssid = "MyAltice 15A33F";
-const char *password = "lavender-645-286";
+const char *ssid = "";
+const char *password = "";
 
 void startCameraServer();
 void setupLedFlash(int pin);
 
 void setup() {
-  
-
   Serial.begin(115200);
   Serial.setDebugOutput(true);
   Serial.println();
+
 
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;

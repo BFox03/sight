@@ -1,15 +1,13 @@
 #include "ESP_I2S.h"
 #include "FS.h"
-#include "C:\Users\brand\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.5\libraries\SD\src\SD.h"
+#include "SD.h"
 
 void record() {
-  // Create an instance of the I2SClass
   I2SClass i2s;
-
+  
   // Create variables to store the audio data
   uint8_t *wav_buffer;
   size_t wav_size;
-  const 
 
   // Initialize the serial port
   /*Serial.begin(115200);
