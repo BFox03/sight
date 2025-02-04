@@ -87,7 +87,7 @@
 #define CONFIG_LED_MAX_INTENSITY 255
 
 int led_duty = 0;
-bool isStreaming = false;
+bool isStreaming = true;
 
 #endif
 
@@ -106,7 +106,7 @@ httpd_handle_t camera_httpd = NULL;
 
 #if CONFIG_ESP_FACE_DETECT_ENABLED
 
-static int8_t detection_enabled = 0;
+static int8_t detection_enabled = 1;
 
 // #if TWO_STAGE
 // static HumanFaceDetectMSR01 s1(0.1F, 0.5F, 10, 0.2F);
@@ -116,7 +116,7 @@ static int8_t detection_enabled = 0;
 // #endif
 
 #if CONFIG_ESP_FACE_RECOGNITION_ENABLED
-static int8_t recognition_enabled = 0;
+static int8_t recognition_enabled = 1;
 static int8_t is_enrolling = 0;
 
 #if QUANT_TYPE
@@ -261,7 +261,8 @@ static int run_face_recognition(fb_data_t *fb, std::list<dl::detect::result_t> *
   face_info_t recognize = recognizer.recognize(tensor, landmarks);
   if (recognize.id >= 0) {
     rgb_printf(fb, FACE_COLOR_GREEN, "ID[%u]: %.2f", recognize.id, recognize.similarity);
-    record();
+    // ADDED
+    //record();
   } else {
     rgb_print(fb, FACE_COLOR_RED, "Intruder Alert!");
   }
@@ -495,6 +496,15 @@ static esp_err_t capture_handler(httpd_req_t *req) {
 }
 
 static esp_err_t stream_handler(httpd_req_t *req) {
+  //ADD
+  int reading = digitalRead(D0);
+  if (reading == 1){
+    digitalWrite(LED_BUILTIN, HIGH);
+  } else {
+    digitalWrite(LED_BUILTIN, LOW);
+  }
+  
+
   camera_fb_t *fb = NULL;
   struct timeval _timestamp;
   esp_err_t res = ESP_OK;
@@ -663,8 +673,9 @@ static esp_err_t stream_handler(httpd_req_t *req) {
 #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_INFO
                 detected = true;
 #endif
+
 #if CONFIG_ESP_FACE_RECOGNITION_ENABLED
-                if (recognition_enabled) {
+                if (recognition_enabled || reading == 1) {
                   face_id = run_face_recognition(&rfb, &results);
 #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_INFO
                   fr_recognize = esp_timer_get_time();
@@ -848,6 +859,7 @@ static esp_err_t cmd_handler(httpd_req_t *req) {
   }
 #endif
 
+
 #if CONFIG_ESP_FACE_DETECT_ENABLED
   else if (!strcmp(variable, "face_detect")) {
     detection_enabled = val;
@@ -857,6 +869,7 @@ static esp_err_t cmd_handler(httpd_req_t *req) {
     }
 #endif
   }
+
 #if CONFIG_ESP_FACE_RECOGNITION_ENABLED
   else if (!strcmp(variable, "face_enroll")) {
     is_enrolling = !is_enrolling;
@@ -879,8 +892,12 @@ static esp_err_t cmd_handler(httpd_req_t *req) {
   }
 
   httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+
   return httpd_resp_send(req, NULL, 0);
 }
+
+
+
 
 static int print_reg(char *p, sensor_t *s, uint16_t reg, uint32_t mask) {
   return sprintf(p, "\"0x%x\":%u,", reg, s->get_reg(s, reg, mask));
@@ -893,34 +910,10 @@ static esp_err_t status_handler(httpd_req_t *req) {
   char *p = json_response;
   *p++ = '{';
 
-  if (s->id.PID == OV5640_PID || s->id.PID == OV3660_PID) {
-    for (int reg = 0x3400; reg < 0x3406; reg += 2) {
-      p += print_reg(p, s, reg, 0xFFF);  //12 bit
-    }
-    p += print_reg(p, s, 0x3406, 0xFF);
-
-    p += print_reg(p, s, 0x3500, 0xFFFF0);  //16 bit
-    p += print_reg(p, s, 0x3503, 0xFF);
-    p += print_reg(p, s, 0x350a, 0x3FF);   //10 bit
-    p += print_reg(p, s, 0x350c, 0xFFFF);  //16 bit
-
-    for (int reg = 0x5480; reg <= 0x5490; reg++) {
-      p += print_reg(p, s, reg, 0xFF);
-    }
-
-    for (int reg = 0x5380; reg <= 0x538b; reg++) {
-      p += print_reg(p, s, reg, 0xFF);
-    }
-
-    for (int reg = 0x5580; reg < 0x558a; reg++) {
-      p += print_reg(p, s, reg, 0xFF);
-    }
-    p += print_reg(p, s, 0x558a, 0x1FF);  //9 bit
-  } else if (s->id.PID == OV2640_PID) {
-    p += print_reg(p, s, 0xd3, 0xFF);
-    p += print_reg(p, s, 0x111, 0xFF);
-    p += print_reg(p, s, 0x132, 0xFF);
-  }
+  // For OV2640_PID
+  p += print_reg(p, s, 0xd3, 0xFF);
+  p += print_reg(p, s, 0x111, 0xFF);
+  p += print_reg(p, s, 0x132, 0xFF);
 
   p += sprintf(p, "\"xclk\":%u,", s->xclk_freq_hz / 1000000);
   p += sprintf(p, "\"pixformat\":%u,", s->pixformat);
@@ -1132,13 +1125,7 @@ static esp_err_t index_handler(httpd_req_t *req) {
   httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
   sensor_t *s = esp_camera_sensor_get();
   if (s != NULL) {
-    if (s->id.PID == OV3660_PID) {
-      return httpd_resp_send(req, (const char *)index_ov3660_html_gz, index_ov3660_html_gz_len);
-    } else if (s->id.PID == OV5640_PID) {
-      return httpd_resp_send(req, (const char *)index_ov5640_html_gz, index_ov5640_html_gz_len);
-    } else {
-      return httpd_resp_send(req, (const char *)index_ov2640_html_gz, index_ov2640_html_gz_len);
-    }
+    return httpd_resp_send(req, (const char *)index_ov2640_html_gz, index_ov2640_html_gz_len);
   } else {
     log_e("Camera sensor not found");
     return httpd_resp_send_500(req);

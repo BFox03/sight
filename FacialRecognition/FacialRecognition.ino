@@ -1,6 +1,7 @@
 #include "esp_camera.h"
 #include <WiFi.h>
 #include "ESP_I2S.h"
+#include "env.h"
 
 //
 // This project comes from [Espressif's routine CameraWebServer](https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/Camera/CameraWebServer/CameraWebServer.ino) and has been changed to work directly with XIAO ESP32S3 Sense.
@@ -44,11 +45,14 @@
 
 #define LED_GPIO_NUM      21
 
+//ADD
+#define BUTTON            D0
+
 // ===========================
 // Enter your WiFi credentials
 // ===========================
-const char *ssid = "";
-const char *password = "";
+const char *ssid = ssid_env;
+const char *password = password_env;
 
 void startCameraServer();
 void setupLedFlash(int pin);
@@ -57,7 +61,6 @@ void setup() {
   Serial.begin(115200);
   Serial.setDebugOutput(true);
   Serial.println();
-
 
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
