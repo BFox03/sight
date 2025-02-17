@@ -1,4 +1,0 @@
-Changes from CameraWebServer (10/28)
-- Moved camera pin designation to main file (remove camera_pins.h)
-- removed readme.md
-- enabled pixel format pixformat_rgb565 from jpeg
