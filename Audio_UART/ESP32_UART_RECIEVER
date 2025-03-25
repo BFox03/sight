@@ -1,24 +1,101 @@
 // Receiver - WROOM
 
+#include "Arduino.h"
+#include "Audio.h"
+#include "SD.h"
+#include "FS.h"
+
 // Define TX and RX pins for UART (change if needed)
 #define TXD1 32
 #define RXD1 33
 
+// microSD card Reader connections
+#define SD_CS       5
+#define SPI_MOSI    23
+#define SPI_MISO    19
+#define SPI_SCK     18
+
+// I2S connections
+#define I2S_DOUT    22
+#define I2S_BCLK    26
+#define I2S_LRC     25
+
+// Create Audio object
+Audio audio;
+
+// Initialize Variables
+int lock = 0;
+int reset = 0;
+
 // Use Serial1 for UART communication
 HardwareSerial mySerial(2);
+
+//function to play the right file based off of fileNum
+void onReceive()
+{
+  uint8_t audio_file_num;
+  char audio_file[20];
+
+  // Check Serial and wait until data is available
+  if (mySerial.available() >= 2) 
+  {
+    if(mySerial.read() == 'S')
+    {
+      delay(10);
+      uint8_t audio_file_num = mySerial.read();
+      Serial.printf("Received File %d\n", audio_file_num);
+  
+
+    // Test SD Connection
+    if(!SD.begin(SD_CS))
+    {
+      Serial.println("Error accessing microSD card!");
+      return; // Wait 1 sec before retrying
+    }
+
+    Serial.println("Connected to SD Card");
+
+    // Open music file
+    audio.setPinout(I2S_BCLK, I2S_LRC, I2S_DOUT);
+    sprintf(audio_file, "/%d.wav", audio_file_num);
+    audio.connecttoFS(SD, audio_file);
+    Serial.print("Playing Audio File ");
+    Serial.println(audio_file);
+    //delay(3250); // Delay to play entire audio file
+    while(audio.isRunning())
+    {
+      audio.loop();
+    }
+    Serial.println("Finished playing Audio File");
+
+    //reset = 1;
+    }
+    else
+    {
+      Serial.println("Invlaid start byte detected. Clearing buffer.");
+      mySerial.flush();
+    }
+  }
+}
 
 void setup() {
   Serial.begin(115200);
   mySerial.begin(9600, SERIAL_8N1, RXD1, TXD1);  // UART setup
   
   Serial.println("ESP32 UART Receiver");
+  Serial.println("Slave Serial Initialized");
+
+  // Set up SD Connection
+  pinMode(SD_CS, OUTPUT);      
+  SPI.begin(SPI_SCK, SPI_MISO, SPI_MOSI);
+  
+  // Setup I2S 
+  audio.setPinout(I2S_BCLK, I2S_LRC, I2S_DOUT);
+  audio.setVolume(21);
 }
 
 void loop() {
   // Check if data is available to read
-  if (mySerial.available()) {
-    // Read data and display it
-    String message = mySerial.readStringUntil('\n');
-    Serial.println("Received: " + message);
-  }
+  //Serial.print("Entered the VOID LOOP\n");
+  onReceive();
 }
