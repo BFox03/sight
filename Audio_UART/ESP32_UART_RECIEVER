@@ -46,10 +46,12 @@ void onReceive()
       Serial.printf("Received File %d\n", audio_file_num);
   
 
+    SPI.begin(SPI_SCK, SPI_MISO, SPI_MOSI);
     // Test SD Connection
     if(!SD.begin(SD_CS))
     {
       Serial.println("Error accessing microSD card!");
+      
       return; // Wait 1 sec before retrying
     }
 
@@ -67,7 +69,10 @@ void onReceive()
       audio.loop();
     }
     Serial.println("Finished playing Audio File");
-
+    SPI.end();
+    digitalWrite(SD_CS, LOW);
+    Serial.println("SPI has ended!");
+    //delay(1000);
     //reset = 1;
     }
     else
@@ -87,11 +92,11 @@ void setup() {
 
   // Set up SD Connection
   pinMode(SD_CS, OUTPUT);      
-  SPI.begin(SPI_SCK, SPI_MISO, SPI_MOSI);
+  //SPI.begin(SPI_SCK, SPI_MISO, SPI_MOSI);
   
   // Setup I2S 
   audio.setPinout(I2S_BCLK, I2S_LRC, I2S_DOUT);
-  audio.setVolume(21);
+  audio.setVolume(10);
 }
 
 void loop() {
